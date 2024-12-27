@@ -214,7 +214,14 @@ class AuthController extends Controller
      *         response=422,
      *         description="Validation errors",
      *         @OA\JsonContent(ref="#/components/schemas/ValidationErrors")
-     *     )
+     *     ),
+     *      @OA\Response(
+     *          response=429,
+     *          description="Too many attempts",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Too Many Attempts")
+     *          )
+     *      )
      * )
      */
     public function forgotPassword(Request $request)
