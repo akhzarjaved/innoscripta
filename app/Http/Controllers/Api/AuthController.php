@@ -12,9 +12,50 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use OpenApi\Annotations as OA;
+
+/**
+ * @OA\Schema(
+ *     schema="ValidationErrors",
+ *     type="object",
+ *     @OA\Property(property="message", type="string", example="Validation error message"),
+ *     @OA\Property(property="errors", type="object")
+ * )
+ */
 
 class AuthController extends Controller
 {
+
+    /**
+     * @OA\Post(
+     *     path="/api/login",
+     *     summary="User Login",
+     *     description="Login a user by providing email and password.",
+     *     tags={"Auth"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", example="password")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token_type", type="string", example="Bearer"),
+     *             @OA\Property(property="token", type="string", example="token123"),
+     *             @OA\Property(property="user", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation errors",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrors")
+     *     )
+     * )
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -36,6 +77,38 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/register",
+     *     summary="Register a new user",
+     *     description="Register a new user by providing name, email, and password.",
+     *     tags={"Auth"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name","email","password","password_confirmation"},
+     *             @OA\Property(property="name", type="string", example="John"),
+     *             @OA\Property(property="email", type="string", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", example="password"),
+     *             @OA\Property(property="password_confirmation", type="string", example="password")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token_type", type="string", example="Bearer"),
+     *             @OA\Property(property="token", type="string", example="token123"),
+     *             @OA\Property(property="user", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation errors",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrors")
+     *     )
+     * )
+     */
     public function register(Request $request)
     {
         $request->validate([
@@ -59,6 +132,29 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/logout",
+     *     summary="Logout current user",
+     *     description="Logout current logged-in user.",
+     *     tags={"Auth"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="User Logged out")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *          response=401,
+     *          description="Unauthenticated",
+     *          @OA\JsonContent(
+     *              @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *          )
+     *      )
+     * )
+     */
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
@@ -66,11 +162,61 @@ class AuthController extends Controller
         return response()->json(['message' => 'User Logged out']);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/user",
+     *     summary="Current user",
+     *     description="Check the current logged-in user.",
+     *     tags={"Auth"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="user", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *           response=401,
+     *           description="Unauthenticated",
+     *           @OA\JsonContent(
+     *               @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *           )
+     *       )
+     * )
+     */
     public function user(Request $request)
     {
         return new UserResource($request->user());
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/forgot-password",
+     *     summary="Forgot password",
+     *     description="Send an email with OTP for password reset.",
+     *     tags={"Auth"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", example="john@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Confirmation OTP has been sent to your email")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation errors",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrors")
+     *     )
+     * )
+     */
     public function forgotPassword(Request $request)
     {
         $request->validate([
@@ -92,6 +238,41 @@ class AuthController extends Controller
         return response()->json(['message' => 'Confirmation OTP has been sent to your email']);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/otp-verification",
+     *     summary="OTP verification",
+     *     description="Verification of the OTP sent to an email.",
+     *     tags={"Auth"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email", "otp"},
+     *             @OA\Property(property="email", type="string", example="john@example.com"),
+     *             @OA\Property(property="otp", type="numeric", example="123123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="OTP verified.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad request",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid or expired OTP.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation errors",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrors")
+     *     )
+     * )
+     */
     public function otpVerification(Request $request)
     {
         $request->validate([
@@ -110,6 +291,43 @@ class AuthController extends Controller
         return response()->json(['message' => 'OTP verified.']);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/reset-password",
+     *     summary="Password reset",
+     *     description="Password reset against the account.",
+     *     tags={"Auth"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email", "otp", "password","password_confirmation"},
+     *             @OA\Property(property="email", type="string", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", example="password"),
+     *             @OA\Property(property="password_confirmation", type="string", example="password"),
+     *             @OA\Property(property="otp", type="numeric", example="123123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Password reset successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad request",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Account not found.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation errors",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationErrors")
+     *     )
+     * )
+     */
     public function resetPassword(Request $request)
     {
         $request->validate([
