@@ -18,15 +18,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use OpenApi\Annotations as OA;
 
-/**
- * @OA\Schema(
- *     schema="ValidationErrors",
- *     type="object",
- *     @OA\Property(property="message", type="string", example="Validation error message"),
- *     @OA\Property(property="errors", type="object")
- * )
- */
-
 class AuthController extends Controller
 {
 
