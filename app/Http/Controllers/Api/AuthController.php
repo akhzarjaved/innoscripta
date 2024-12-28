@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\LoginRequest;
+use App\Http\Requests\Api\OTPVerificationRequest;
+use App\Http\Requests\Api\PasswordResetRequest;
+use App\Http\Requests\Api\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\PasswordResetOtp;
 use App\Models\User;
@@ -56,13 +60,8 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json(['message' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
         }
@@ -109,14 +108,8 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $request->validate([
-            'name' => 'required|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8|confirmed',
-        ]);
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -163,34 +156,6 @@ class AuthController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/api/user",
-     *     summary="Current user",
-     *     description="Check the current logged-in user.",
-     *     tags={"Auth"},
-     *     security={{"sanctum":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Success",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="user", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *           response=401,
-     *           description="Unauthenticated",
-     *           @OA\JsonContent(
-     *               @OA\Property(property="message", type="string", example="Unauthenticated.")
-     *           )
-     *       )
-     * )
-     */
-    public function user(Request $request)
-    {
-        return new UserResource($request->user());
-    }
-
-    /**
      * @OA\Post(
      *     path="/api/forgot-password",
      *     summary="Forgot password",
@@ -227,7 +192,7 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => ['required', 'email', 'exists:users,email'],
         ]);
 
         $otp = rand(100000, 999999);
@@ -280,13 +245,8 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function otpVerification(Request $request)
+    public function otpVerification(OTPVerificationRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'otp' => 'required|numeric',
-        ]);
-
         $account = PasswordResetOtp::where('email', $request->email)
             ->where('otp', $request->otp)
             ->first();
@@ -335,14 +295,8 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function resetPassword(Request $request)
+    public function resetPassword(PasswordResetRequest $request)
     {
-        $request->validate([
-            'otp' => 'required|numeric',
-            'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
-        ]);
-
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
