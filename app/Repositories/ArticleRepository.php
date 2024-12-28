@@ -40,4 +40,9 @@ class ArticleRepository implements ArticleRepositoryInterface
             ->latest('published_at')
             ->paginate(10);
     }
+
+    public function find($articleId)
+    {
+        return Article::find($articleId);
+    }
 }

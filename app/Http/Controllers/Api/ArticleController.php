@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ArticleSearchRequest;
 use App\Http\Resources\ArticleResource;
 use App\Interfaces\ArticleRepositoryInterface;
+use Illuminate\Http\Response;
 use OpenApi\Annotations as OA;
 
 class ArticleController extends Controller
@@ -105,11 +106,6 @@ class ArticleController extends Controller
      *           @OA\JsonContent(
      *               @OA\Property(property="message", type="string", example="Unauthenticated.")
      *           )
-     *       ),
-     *     @OA\Response(
-     *           response=422,
-     *           description="Validation errors",
-     *           @OA\JsonContent(ref="#/components/schemas/ValidationErrors")
      *       )
      * )
      */
@@ -118,5 +114,55 @@ class ArticleController extends Controller
     )
     {
         return ArticleResource::collection($articleRepository->searchPreferred());
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/articles/{id}",
+     *     summary="Article detail",
+     *     description="show the details for requested article.",
+     *     tags={"Article"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *           name="id",
+     *           in="path",
+     *           description="The id of article",
+     *           required=true,
+     *           @OA\Schema(type="integer", example=1)
+     *       ),
+     *     @OA\Response(
+     *          response=200,
+     *          description="Success",
+     *          @OA\JsonContent(
+     *              type="object",
+     *              @OA\Property(
+     *                  property="data",
+     *                  type="object",
+     *                  ref="#/components/schemas/Article"
+     *              )
+     *          )
+     *      ),
+     *     @OA\Response(
+     *           response=401,
+     *           description="Unauthenticated",
+     *           @OA\JsonContent(
+     *               @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *           )
+     *       )
+     * )
+     */
+    public function details(
+        ArticleRepositoryInterface $articleRepository,
+        $articleId
+    )
+    {
+        $article = $articleRepository->find($articleId);
+
+        if (!$article) {
+            return response()->json(['message' => 'Article not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $article->load(['author', 'category', 'source']);
+        return new ArticleResource($article);
     }
 }
