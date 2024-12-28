@@ -13,10 +13,12 @@ Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('p
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('logout', [AuthController::class, 'logout']);
+
     Route::group(['prefix' => 'articles'], function () {
         Route::get('/', [ArticleController::class, 'search']);
         Route::get('{articleId}', [ArticleController::class, 'details']);
     });
+
     Route::get('preferred-articles', [ArticleController::class, 'preferred']);
 
     Route::group(['prefix' => 'user', 'controller' => UserController::class], function () {
